@@ -1,4 +1,4 @@
-from utils import remove_duplicates
+from utils import Utils
 
 
 class ParametersSet:
@@ -68,4 +68,4 @@ class ParametersSet:
             self.growing_season = list(range(growing_season[0], growing_season[1] + 1)) + \
                                   list(range(growing_season[2], growing_season[3] + 1))
 
-        self.growing_season = remove_duplicates(self.growing_season)
+        self.growing_season = Utils.remove_duplicates(self.growing_season)
