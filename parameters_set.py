@@ -34,8 +34,6 @@ class ParametersSet:
     def __init__(self, x, y, env_vars, weights, number_divisions, env_data_ref, env_data_targ,
                  growing_season, rotation, threshold, outfile, file_name, writefile):
 
-        assert isinstance(growing_season, tuple), "Please make sure the growing_season is a tuple"
-
         self.latitude = x
         self.longitude = y
         self.env_vars = env_vars
