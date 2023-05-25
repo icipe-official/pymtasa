@@ -31,7 +31,7 @@ def test():
 
     site = Site(
         9.94,
-        5.45,
+        5.55,
         ("prec", "tmean"),
         [
             ["/Users/francktonle/Downloads/OTHERS/Tifs/prec_jan.tif",
