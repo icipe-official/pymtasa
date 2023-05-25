@@ -10,16 +10,16 @@ def test():
         (0.5, 0.5),
         12,
         [
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/prec_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/prec_feb.tif"],
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/tavg_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/tavg_feb.tif"]
         ],
         [
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/prec_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/prec_feb.tif"],
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/tavg_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/tavg_feb.tif"]
         ],
         [1, 12],
         "tmean",
@@ -30,14 +30,14 @@ def test():
     )
 
     site = Site(
-        -75.5,
-        3.2,
+        9.94,
+        5.45,
         ("prec", "tmean"),
         [
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
-            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
-             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/prec_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/prec_feb.tif"],
+            ["/Users/francktonle/Downloads/OTHERS/Tifs/tavg_jan.tif",
+             "/Users/francktonle/Downloads/OTHERS/Tifs/tavg_feb.tif"]
         ]
     )
 
