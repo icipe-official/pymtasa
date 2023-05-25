@@ -1,9 +1,9 @@
-from parameters_set import ParametersSet, Site
+from analogues.parameters_set import ParametersSet, Site
 
 
 def test():
 
-    parameters_set = ParametersSet(
+    parameters = ParametersSet(
         5.34,
         5.33,
         ("prec", "tmean"),

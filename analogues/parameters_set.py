@@ -1,4 +1,4 @@
-from utils import Utils
+from analogues.utils import Utils
 
 
 class ParametersSet:
