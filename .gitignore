@@ -1,1 +1,5 @@
 .idea/
+__pycache__/
+.idea/modules.xml
+.idea/python-analogues.iml
+.idea/modules.xml

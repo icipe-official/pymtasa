@@ -1,16 +1,49 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from parameters_set import ParametersSet, Site
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def test():
+
+    parameters_set = ParametersSet(
+        5.34,
+        5.33,
+        ("prec", "tmean"),
+        (0.5, 0.5),
+        12,
+        [
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+        ],
+        [
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+        ],
+        [1, 12],
+        "tmean",
+        1,
+        "~/Documents/WORKSPACE/PYTHON-CCAFS/results",
+        "results.tif",
+        True
+    )
+
+    site = Site(
+        -75.5,
+        3.2,
+        ("prec", "tmean"),
+        [
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/prec_feb.tif"],
+            ["/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_jan.tif",
+             "/home/tofrano/Documents/WORKSPACE/Franck/Tifs/tavg_feb.tif"]
+        ]
+    )
+
+    print(site.env_data)
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    # Perform tests to check the different class and functions
+    test()
