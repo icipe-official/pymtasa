@@ -2,8 +2,9 @@ from analogues.utils import Utils
 
 
 class ParametersSet:
-    def __init__(self, x, y, env_vars, weights, number_divisions, env_data_ref, env_data_targ,
-                 growing_season, rotation, threshold, outfile, file_name, writefile):
+    def __init__(self, x: float, y: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
+                 env_data_ref: list[list[str]], env_data_targ: list[list[str]], growing_season: list[int],
+                 rotation: str, threshold: float, outfile: str, file_name: str, writefile: bool):
         """
             x (float) : longitude (decimal degrees) E.g: 5 \n
             y (float) : latitude (decimal degrees) E.g: 5 \n
@@ -33,8 +34,8 @@ class ParametersSet:
             returned. \n
         """
 
-        self.latitude = y
         self.longitude = x
+        self.latitude = y
         self.env_vars = env_vars
         self.weights = weights
         self.number_divisions = number_divisions
@@ -71,7 +72,7 @@ class ParametersSet:
 
 
 class Site:
-    def __init__(self, x, y, env_vars, env_data_ref):
+    def __init__(self, x: float, y: float, env_vars: tuple, env_data_ref: list[list[str]]):
         """
             longitude (float) : longitude (decimal degrees) E.g: 5 \n
             latitude (float) : latitude (decimal degrees) E.g: 5 \n

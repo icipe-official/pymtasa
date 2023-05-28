@@ -8,7 +8,7 @@ def test():
         5.33,
         ("prec", "tmean"),
         (0.5, 0.5),
-        12,
+        (12,12),
         [
             ["/Users/francktonle/Downloads/OTHERS/Tifs/prec_jan.tif",
              "/Users/francktonle/Downloads/OTHERS/Tifs/prec_feb.tif"],
