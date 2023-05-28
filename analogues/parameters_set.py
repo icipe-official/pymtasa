@@ -9,29 +9,30 @@ class ParametersSet:
             x (float) : longitude (decimal degrees) E.g: 5 \n
             y (float) : latitude (decimal degrees) E.g: 5 \n
             env_vars (tuple) : a tuple with the name of the climatic variable(s) to use, e.g. ("prec","tmean"), or
-            bioclimatic variable e.g. "bio_1" \n
+                bioclimatic variable e.g. "bio_1" \n
             weights (tuple) : tuple of length equal to the number of variables. Each value in the vector gives the
-            weight given to each variable in the range 0-1. The sum of the weights must equal 1. E.g: (0.5, 0.5) \n
+                weight given to each variable in the range 0-1. The sum of the weights must equal 1. E.g: (0.5, 0.5) \n
             number_divisions (tuple) : the number of divisions (usually months) for each variable. ndivisions=12 for
-            climatic variables and ndivisions=1 for bioclimatic (or other types of variables) variables. E.g: (12,12) \n
+                climatic variables and ndivisions=1 for bioclimatic (or other types of variables) variables.
+                E.g: (12,12) \n
             env_data_ref (tuple) : a tuple of length equal to the number of variables that specifies the
-            reference climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
-            RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
+                reference climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
+                RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
             env_data_targ (tuple) : a tuple of length equal to the number of variables that specifies the target
-            climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object. RasterLayer
-            applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
+                climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
+                RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
             growing_season (list) : growing season (months) of interest in the analysis. Specified as a vector of
-            length 2, where the first value specifies the start and the second value specifies the end of growing
-            season. Not relevant for bioclimatic variables. E.g: [1,12] \n
+                length 2, where the first value specifies the start and the second value specifies the end of growing
+                season. Not relevant for bioclimatic variables. E.g: [1,12] \n
             rotation (string) : should a rotation be applied. i.e. "tmean", "prec", "both" or "none".
-            Rotation will allow comparisons between sites with different seasonality (e.g. northern vs. southern
-            hemisphere) \n
-            threshold (float) : value between 0-1. Only sites with a climatic similarity above this
-            threshold will be saved and displayed. \n
+                Rotation will allow comparisons between sites with different seasonality (e.g. northern vs. southern
+                hemisphere) \n
+            threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
+                saved and displayed. \n
             outfile (string) : directory where the resultant similarity map will be saved \n
             file_name (string) :  name of output file \n
             writefile (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
-            returned. \n
+                returned. \n
         """
 
         self.longitude = x
