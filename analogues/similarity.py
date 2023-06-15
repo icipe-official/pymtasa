@@ -16,21 +16,37 @@ class Similarity:
         reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
                          self.parameters_set.env_data_ref)
 
-    def compute_rotation(self, reference_vector: list[float], target_env_data_row: any) -> float:
-        return 0
+    def compute_rotation(self, reference_vector: np.ndarray, target_env_data_row: any) -> float:
+        rotation = 0
+        if reference_vector.ndim == 1:
+            n = len(reference_vector)
+            fourier1 = np.fft.fft(reference_vector)
+            fourier2 = np.fft.fft(target_env_data_row)
+            phase1 = np.angle(fourier1)
+            phase2 = np.angle(fourier2)
+            rotation = round(((phase1[1] - phase2[1]) * (n / 2)) / np.pi, 0)
+        else:
+            n = reference_vector.shape[1]
+            fourier1 = np.fft.fft2(reference_vector)
+            fourier2 = np.fft.fft2(target_env_data_row)
+            phase1 = np.angle(fourier1)
+            phase2 = np.angle(fourier2)
+            rotation = round(((phase1[1, 0] - phase2[1, 0]) * (n / 2)) / np.pi, 0)
+        return rotation
 
     def rotate_climate_data(self, reference: Site, parameters_set: ParametersSet):
         file_path = ""
         if parameters_set.rotation in ("prec", "tmean"):
             specific_env_data_reference_vector = reference.env_data[parameters_set.rotation]
             specific_env_data_target_paths = parameters_set.env_data_targ[
-                parameters_set.env_vars.index(parameters_set.rotation)]
+                parameters_set.env_vars.index(parameters_set.rotation)]  # We assume that the position of the variables
+            # in env_vars is the same as the position of the variables in env_data_targ
             specific_env_data_target_matrix = Utils.convert_raster_stack_into_matrix(specific_env_data_target_paths)
             rotation_data = specific_env_data_target_matrix[:, 0]
             valid_values_indices = np.where(~np.isnan(rotation_data))[0]
             for indice in valid_values_indices:
                 if not np.any(np.isnan(specific_env_data_target_matrix[indice])):
-                    rotation_data[indice] = self.compute_rotation(specific_env_data_reference_vector,
+                    rotation_data[indice] = self.compute_rotation(np.array(specific_env_data_reference_vector),
                                                                   specific_env_data_target_matrix[indice])
                 else:
                     rotation_data[indice] = 0
@@ -53,4 +69,3 @@ class Similarity:
             file_path = Utils.create_tiff_file_from_array(rotation_data, "rotation.tif",
                                                           parameters_set.env_data_targ[0][0])
         return file_path
-
