@@ -58,6 +58,31 @@ class Utils:
         return matrix
 
     @staticmethod
+    def convert_raster_stack_list_into_matrix_list(raster_stack_list: list[list[str]]) -> list[np.ndarray]:
+        matrix_list = []
+        for raster_stack in raster_stack_list:
+            matrix_list.append(Utils.convert_raster_stack_list_into_matrix([raster_stack]))
+        return matrix_list
+
+    @staticmethod
+    def compute_rotation_coefficient(reference_vector: np.ndarray, target_env_data_row: np.ndarray) -> float:
+        if reference_vector.ndim == 1:
+            n = len(reference_vector)
+            fourier1 = np.fft.fft(reference_vector)
+            fourier2 = np.fft.fft(target_env_data_row)
+            phase1 = np.angle(fourier1)
+            phase2 = np.angle(fourier2)
+            rotation = round(((phase1[1] - phase2[1]) * (n / 2)) / np.pi, 0)
+        else:
+            n = reference_vector.shape[1]
+            fourier1 = np.fft.fft2(reference_vector)
+            fourier2 = np.fft.fft2(target_env_data_row)
+            phase1 = np.angle(fourier1)
+            phase2 = np.angle(fourier2)
+            rotation = round(((phase1[1, 0] - phase2[1, 0]) * (n / 2)) / np.pi, 0)
+        return rotation
+
+    @staticmethod
     def create_tiff_file_from_array(vector: np.ndarray, tif_name: str, reference_tif_file_path: str) -> str:
         gtiff_driver = gdal.GetDriverByName('GTiff')
         raster = gdal.Open(reference_tif_file_path)
@@ -73,6 +98,3 @@ class Utils:
         del out_ds
         raster = None
         return file_path
-
-
-
