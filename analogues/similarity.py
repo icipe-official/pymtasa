@@ -37,7 +37,7 @@ class Similarity:
     def rotate_climate_data(self, reference: Site, parameters_set: ParametersSet):
         file_path = ""
         if parameters_set.rotation in ("prec", "tmean"):
-            specific_env_data_reference_vector = reference.env_data[parameters_set.rotation]
+            specific_env_data_reference_vector = np.array(reference.env_data[parameters_set.rotation])
             specific_env_data_target_paths = parameters_set.env_data_targ[
                 parameters_set.env_vars.index(parameters_set.rotation)]  # We assume that the position of the variables
             # in env_vars is the same as the position of the variables in env_data_targ
@@ -46,7 +46,7 @@ class Similarity:
             valid_values_indices = np.where(~np.isnan(rotation_data))[0]
             for indice in valid_values_indices:
                 if not np.any(np.isnan(specific_env_data_target_matrix[indice])):
-                    rotation_data[indice] = self.compute_rotation(np.array(specific_env_data_reference_vector),
+                    rotation_data[indice] = self.compute_rotation(specific_env_data_reference_vector,
                                                                   specific_env_data_target_matrix[indice])
                 else:
                     rotation_data[indice] = 0
