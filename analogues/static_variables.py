@@ -1,3 +1,3 @@
-TMP_DIRECTORY = "/Users/francktonle/Downloads"
-TIFS_DIRECTORY = "/Users/francktonle/Downloads/OTHERS/Tifs"
-RESULTS_DIRECTORY = "/Users/francktonle/Documents/WORKSPACE/PYTHON-CCAFS/results"
+TMP_DIRECTORY = "/home/tofrano/Downloads"
+TIFS_DIRECTORY = "/home/tofrano/Documents/WORKSPACE/Franck/Tifs"
+RESULTS_DIRECTORY = "/home/tofrano/Documents/WORKSPACE/PYTHON-CCAFS/results"
