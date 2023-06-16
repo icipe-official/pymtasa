@@ -3,7 +3,7 @@ from analogues.utils import Utils
 
 class ParametersSet:
     def __init__(self, x: float, y: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
-                 env_data_ref: list[list[str]], env_data_targ: list[list[str]], growing_season: list[int],
+                 env_data_ref: list[list[str]], env_data_target: list[list[str]], growing_season: list[int],
                  rotation: str, threshold: float, outfile: str, file_name: str, writefile: bool):
         """
             x (float) : longitude (decimal degrees) E.g: 5 \n
@@ -18,7 +18,7 @@ class ParametersSet:
             env_data_ref (tuple) : a tuple of length equal to the number of variables that specifies the
                 reference climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
                 RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
-            env_data_targ (tuple) : a tuple of length equal to the number of variables that specifies the target
+            env_data_target (tuple) : a tuple of length equal to the number of variables that specifies the target
                 climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
                 RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
             growing_season (list) : growing season (months) of interest in the analysis. Specified as a vector of
@@ -33,6 +33,9 @@ class ParametersSet:
             file_name (string) :  name of output file \n
             writefile (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
                 returned. \n
+
+            Note :  The position of the variables in env_vars must follow the same order as the position of the
+                    variables in number_divisions, env_data_ref & env_data_target
         """
 
         self.longitude = x
@@ -41,7 +44,7 @@ class ParametersSet:
         self.weights = weights
         self.number_divisions = number_divisions
         self.env_data_ref = env_data_ref
-        self.env_data_targ = env_data_targ
+        self.env_data_target = env_data_target
         self.rotation = rotation
         self.threshold = threshold
         self.outfile = outfile
@@ -77,7 +80,7 @@ class Site:
         """
             longitude (float) : longitude (decimal degrees) E.g: 5 \n
             latitude (float) : latitude (decimal degrees) E.g: 5 \n
-            env_data (dictionary) : environmental variables corresponding to (y,x).
+            env_data (dictionary) : environmental variables corresponding to (x,y).
                 E.g : { 'temp': [20, 22, 23], 'prec': [120. 152, 133] }
         """
 
@@ -89,6 +92,3 @@ class Site:
             tmp_value_list = [Utils.extract_value_from_tif_with_map_coord(tif_file_path, x, y) for tif_file_path in
                               env_data_file_path_set]
             self.env_data[env_vars[i]] = tmp_value_list
-
-
-
