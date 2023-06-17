@@ -1,5 +1,7 @@
 from analogues.parameters_set import ParametersSet, Site
 from analogues.utils import Utils
+from analogues.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY
+import warnings
 import numpy as np
 
 
@@ -14,7 +16,7 @@ class Similarity:
     def __init__(self, parameters_set: ParametersSet):
         self.parameters_set = parameters_set
 
-    def compute_similarity_raster(self):
+    def compute_similarity_raster(self) -> str:
         reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
                          self.parameters_set.env_data_ref)
         if self.parameters_set.rotation is None:
@@ -22,6 +24,14 @@ class Similarity:
                 self.parameters_set.env_data_target)
         else:
             env_data_target_matrices = self.rotate_climate_data(reference)
+        similarity_data = self.compute_similarity_data(reference, env_data_target_matrices)
+        if self.parameters_set.writefile:
+            return Utils.create_tiff_file_from_array(similarity_data, RESULTS_DIRECTORY,
+                                                     self.parameters_set.file_name + ".tif",
+                                                     self.parameters_set.env_data_target[0][0])
+        return Utils.create_tiff_file_from_array(similarity_data, TMP_DIRECTORY,
+                                                 self.parameters_set.file_name + ".tif",
+                                                 self.parameters_set.env_data_target[0][0])
 
     def rotate_climate_data(self, reference: Site) -> list[np.ndarray]:
         rotation_data = self.compute_rotation_data(reference)
@@ -85,3 +95,34 @@ class Similarity:
         else:
             return np.concatenate((matrix_line[rotation_coefficient:],
                                    matrix_line[: rotation_coefficient + number_divisions]))
+
+    def compute_similarity_data(self, reference: Site, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
+        temp_dissimilarity_data = np.full((env_data_target_matrices[0].shape[0], len(self.parameters_set.env_vars)),
+                                          np.nan)
+        for i, env_variable in enumerate(self.parameters_set.env_vars):
+            if len(reference.env_data[env_variable]) == 1:
+                result = np.where(
+                    np.isnan(env_data_target_matrices[i]) | np.isnan(reference.env_data[env_variable]),
+                    np.nan,
+                    (env_data_target_matrices[i] - reference.env_data[env_variable]) ** 2
+                )
+                result = Utils.perform_distance_normalization(np.sqrt(result), env_variable)
+                temp_dissimilarity_data[:, i] = np.squeeze(result * self.parameters_set.weights[i])
+            else:
+                temp_matrix = np.full((env_data_target_matrices[0].shape[0], self.parameters_set.number_divisions[i]),
+                                      np.nan)
+                growing_season_indices = np.array(self.parameters_set.growing_season) - 1
+                first_matrix = env_data_target_matrices[i][:, growing_season_indices]
+                second_matrix = np.array(reference.env_data[env_variable])[growing_season_indices]
+                temp_matrix[:, growing_season_indices] = np.square(first_matrix - second_matrix)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=RuntimeWarning)
+                    result = Utils.perform_distance_normalization(np.sqrt(np.nanmean(temp_matrix, axis=1)),
+                                                                  env_variable)
+                temp_dissimilarity_data[:, i] = np.squeeze(result * self.parameters_set.weights[i])
+        combined = np.full(env_data_target_matrices[0].shape[0], np.nan)
+        if len(self.parameters_set.env_vars) > 1:
+            combined[:] = np.round(np.sum(temp_dissimilarity_data, axis=1), decimals=3)
+        else:
+            combined[:] = np.round(temp_dissimilarity_data[:], decimals=3)
+        return combined
