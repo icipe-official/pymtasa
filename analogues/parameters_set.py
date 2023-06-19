@@ -81,7 +81,7 @@ class Site:
             longitude (float) : longitude (decimal degrees) E.g: 5 \n
             latitude (float) : latitude (decimal degrees) E.g: 5 \n
             env_data (dictionary) : environmental variables corresponding to (x,y).
-                E.g : { 'temp': [20, 22, 23], 'prec': [120. 152, 133] }
+                E.g : { 'temp': [20, 22, 23], 'prec': [120, 152, 133] }
         """
 
         self.longitude = x

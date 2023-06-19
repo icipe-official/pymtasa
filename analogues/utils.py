@@ -1,7 +1,8 @@
 from osgeo import gdal
-from analogues.static_variables import TMP_DIRECTORY
-import numpy as np
+from analogues.static_variables import NORMALIZATION_COEFFICIENTS
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class Utils:
@@ -30,7 +31,7 @@ class Utils:
     @staticmethod
     def convert_raster_stack_into_matrix(raster_stack: list[str]) -> np.ndarray:
         dimensions = Utils.get_dimension_raster_layer(raster_stack[0])
-        matrix = np.zeros((dimensions[0]*dimensions[1], len(raster_stack)))
+        matrix = np.zeros((dimensions[0] * dimensions[1], len(raster_stack)))
         for i, raster_path in enumerate(raster_stack):
             raster = gdal.Open(raster_path)
             band = raster.GetRasterBand(1)
@@ -66,6 +67,8 @@ class Utils:
 
     @staticmethod
     def compute_rotation_coefficient(reference_vector: np.ndarray, target_env_data_row: np.ndarray) -> float:
+        if len(target_env_data_row) == 1:
+            return 0
         if reference_vector.ndim == 1:
             n = len(reference_vector)
             fourier1 = np.fft.fft(reference_vector)
@@ -83,11 +86,19 @@ class Utils:
         return rotation
 
     @staticmethod
-    def create_tiff_file_from_array(vector: np.ndarray, tif_name: str, reference_tif_file_path: str) -> str:
+    def perform_distance_normalization(distances: np.ndarray, env_variable) -> np.array:
+        normalization_coefficient = 10
+        if env_variable in NORMALIZATION_COEFFICIENTS:
+            normalization_coefficient = NORMALIZATION_COEFFICIENTS[env_variable]
+        return normalization_coefficient / (normalization_coefficient + distances)
+
+    @staticmethod
+    def create_tiff_file_from_array(vector: np.ndarray, directory: str, tif_name: str,
+                                    reference_tif_file_path: str) -> str:
         gtiff_driver = gdal.GetDriverByName('GTiff')
         raster = gdal.Open(reference_tif_file_path)
         band = raster.GetRasterBand(1)
-        file_path = os.path.join(TMP_DIRECTORY, tif_name)
+        file_path = os.path.join(directory, tif_name)
         out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, band.DataType)
         out_ds.SetProjection(raster.GetProjection())
         out_ds.SetGeoTransform(raster.GetGeoTransform())
@@ -98,3 +109,13 @@ class Utils:
         del out_ds
         raster = None
         return file_path
+
+    @staticmethod
+    def plot_raster_file(file_path: str):
+        ds = gdal.Open(file_path)
+        data = ds.GetRasterBand(1).ReadAsArray()
+        cmap = plt.cm.get_cmap('RdYlGn')
+        plt.imshow(data, cmap=cmap)
+        plt.colorbar()
+        plt.show()
+        ds = None
