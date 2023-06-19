@@ -4,7 +4,7 @@ from analogues.utils import Utils
 class ParametersSet:
     def __init__(self, x: float, y: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
                  env_data_ref: list[list[str]], env_data_target: list[list[str]], growing_season: list[int],
-                 rotation: str, threshold: float, outfile: str, file_name: str, writefile: bool):
+                 rotation: str, threshold: float, outfile: str, file_name: str, write_file: bool):
         """
             x (float) : longitude (decimal degrees) E.g: 5 \n
             y (float) : latitude (decimal degrees) E.g: 5 \n
@@ -21,9 +21,8 @@ class ParametersSet:
             env_data_target (tuple) : a tuple of length equal to the number of variables that specifies the target
                 climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
                 RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
-            growing_season (list) : growing season (months) of interest in the analysis. Specified as a vector of
-                length 2, where the first value specifies the start and the second value specifies the end of growing
-                season. Not relevant for bioclimatic variables. E.g: [1,12] \n
+            growing_season (list) : growing season (months) of interest in the analysis. c Not relevant for bioclimatic
+                variables. E.g: [1,12] \n
             rotation (string) : should a rotation be applied. i.e. "tmean", "prec", "both" or "none".
                 Rotation will allow comparisons between sites with different seasonality (e.g. northern vs. southern
                 hemisphere) \n
@@ -31,7 +30,7 @@ class ParametersSet:
                 saved and displayed. \n
             outfile (string) : directory where the resultant similarity map will be saved \n
             file_name (string) :  name of output file \n
-            writefile (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
+            write_file (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
                 returned. \n
 
             Note :  The position of the variables in env_vars must follow the same order as the position of the
@@ -45,34 +44,12 @@ class ParametersSet:
         self.number_divisions = number_divisions
         self.env_data_ref = env_data_ref
         self.env_data_target = env_data_target
+        self.growing_season = growing_season
         self.rotation = rotation
         self.threshold = threshold
         self.outfile = outfile
         self.file_name = file_name
-        self.writefile = writefile
-
-        if len(growing_season) == 1:
-            self.growing_season = growing_season
-        elif len(growing_season) == 2 and growing_season[0] > growing_season[1]:
-            # E.g : [11, 2] must become [11, 12, 1, 2]
-            self.growing_season = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1))
-        elif len(growing_season) == 2 and growing_season[0] < growing_season[1]:
-            # E.g : [3, 5] must become [3, 4, 5]
-            self.growing_season = list(range(growing_season[0], growing_season[1] + 1))
-        elif len(growing_season) == 4 and growing_season[0] > growing_season[1]:
-            # E.g : [11, 3, 6, 8] must become [11, 12] + [1, 2, 3] + [6, 7, 8] = [11, 12, 1, 2, 3, 6, 7, 8]
-            self.growing_season = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1)) + \
-                                  list(range(growing_season[2], growing_season[3] + 1))
-        elif len(growing_season) == 4 and growing_season[2] > growing_season[3]:
-            # E.g : [6, 8, 11, 2] must become [6, 7, 8] + [11, 12] + [1, 2] = [6, 7, 8, 11, 12, 1, 2]
-            self.growing_season = list(range(growing_season[0], growing_season[1] + 1)) + \
-                                  list(range(growing_season[2], 13)) + list(range(1, growing_season[3] + 1))
-        else:
-            # E.g : [1, 3, 6, 8] must become [1, 2, 3] + [6, 7, 8] = [1, 2, 3, 6, 7, 8]
-            self.growing_season = list(range(growing_season[0], growing_season[1] + 1)) + \
-                                  list(range(growing_season[2], growing_season[3] + 1))
-
-        self.growing_season = Utils.remove_duplicates(self.growing_season)
+        self.write_file = write_file
 
 
 class Site:

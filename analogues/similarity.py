@@ -8,6 +8,7 @@ import numpy as np
 class Similarity:
     """
         parameters_set (ParametersSet) : set of parameters used to compute the agro ecology similarity
+        reference (Site) : site that will be used as reference to evaluate the agro ecology similarity
 
         Note :  We assume that the position of the variables in env_vars follows the same order as the position of the
                 variables in number_divisions & env_data_target
@@ -15,17 +16,43 @@ class Similarity:
 
     def __init__(self, parameters_set: ParametersSet):
         self.parameters_set = parameters_set
+        self.formatting_growing_season()
+        self.reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
+                              self.parameters_set.env_data_ref)
+
+    def formatting_growing_season(self):
+        growing_season = self.parameters_set.growing_season
+        if len(growing_season) == 1:
+            tmp_result = growing_season
+        elif len(growing_season) == 2 and growing_season[0] > growing_season[1]:
+            # E.g : [11, 2] must become [11, 12, 1, 2]
+            tmp_result = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1))
+        elif len(growing_season) == 2 and growing_season[0] < growing_season[1]:
+            # E.g : [3, 5] must become [3, 4, 5]
+            tmp_result = list(range(growing_season[0], growing_season[1] + 1))
+        elif len(growing_season) == 4 and growing_season[0] > growing_season[1]:
+            # E.g : [11, 3, 6, 8] must become [11, 12] + [1, 2, 3] + [6, 7, 8] = [11, 12, 1, 2, 3, 6, 7, 8]
+            tmp_result = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1)) + \
+                         list(range(growing_season[2], growing_season[3] + 1))
+        elif len(growing_season) == 4 and growing_season[2] > growing_season[3]:
+            # E.g : [6, 8, 11, 2] must become [6, 7, 8] + [11, 12] + [1, 2] = [6, 7, 8, 11, 12, 1, 2]
+            tmp_result = list(range(growing_season[0], growing_season[1] + 1)) + \
+                         list(range(growing_season[2], 13)) + list(range(1, growing_season[3] + 1))
+        else:
+            # E.g : [1, 3, 6, 8] must become [1, 2, 3] + [6, 7, 8] = [1, 2, 3, 6, 7, 8]
+            tmp_result = list(range(growing_season[0], growing_season[1] + 1)) + \
+                         list(range(growing_season[2], growing_season[3] + 1))
+
+        self.parameters_set.growing_season = Utils.remove_duplicates(tmp_result)
 
     def compute_similarity_raster(self) -> str:
-        reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
-                         self.parameters_set.env_data_ref)
         if self.parameters_set.rotation is None:
             env_data_target_matrices = Utils.convert_raster_stack_list_into_matrix_list(
                 self.parameters_set.env_data_target)
         else:
-            env_data_target_matrices = self.rotate_climate_data(reference)
-        similarity_data = self.compute_similarity_data(reference, env_data_target_matrices)
-        if self.parameters_set.writefile:
+            env_data_target_matrices = self.rotate_climate_data()
+        similarity_data = self.compute_similarity_data(env_data_target_matrices)
+        if self.parameters_set.write_file:
             return Utils.create_tiff_file_from_array(similarity_data, RESULTS_DIRECTORY,
                                                      self.parameters_set.file_name + ".tif",
                                                      self.parameters_set.env_data_target[0][0])
@@ -33,24 +60,24 @@ class Similarity:
                                                  self.parameters_set.file_name + ".tif",
                                                  self.parameters_set.env_data_target[0][0])
 
-    def rotate_climate_data(self, reference: Site) -> list[np.ndarray]:
-        rotation_data = self.compute_rotation_data(reference)
+    def rotate_climate_data(self) -> list[np.ndarray]:
+        rotation_matrix = self.compute_rotation_matrix()
         env_data_target_matrices = []
         for env_var in ("prec", "tmean", "tmin", "tmax"):
             if env_var in self.parameters_set.env_vars:
                 index = self.parameters_set.env_vars.index(env_var)
                 env_data_target_matrix = Utils.convert_raster_stack_into_matrix(
                     self.parameters_set.env_data_target[index])
-                valid_values_indices = np.where(~np.isnan(rotation_data))[0]
+                valid_values_indices = np.where(~np.isnan(rotation_matrix))[0]
                 for index in valid_values_indices:
-                    env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_data[index],
+                    env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_matrix[index],
                                                                                   env_data_target_matrix[index, :])
                 env_data_target_matrices.append(env_data_target_matrix)
         return env_data_target_matrices
 
-    def compute_rotation_data(self, reference: Site) -> np.ndarray:
+    def compute_rotation_matrix(self) -> np.ndarray:
         if self.parameters_set.rotation in ("prec", "tmean"):
-            specific_env_data_reference_vector = np.array(reference.env_data[self.parameters_set.rotation])
+            specific_env_data_reference_vector = np.array(self.reference.env_data[self.parameters_set.rotation])
             specific_env_data_target_paths = self.parameters_set.env_data_target[
                 self.parameters_set.env_vars.index(self.parameters_set.rotation)]
             specific_env_data_target_matrix = Utils.convert_raster_stack_into_matrix(specific_env_data_target_paths)
@@ -64,7 +91,8 @@ class Similarity:
                 else:
                     rotation_data[index] = 0
         else:
-            specific_env_data_reference_matrix = np.array([reference.env_data["tmean"], reference.env_data["prec"]])
+            specific_env_data_reference_matrix = np.array([self.reference.env_data["tmean"],
+                                                           self.reference.env_data["prec"]])
             index_tmean, index_prec = self.parameters_set.env_vars.index("tmean"), self.parameters_set.env_vars.index(
                 "prec")
             specific_env_data_target_matrix = Utils.convert_raster_stack_list_into_matrix([
@@ -96,15 +124,15 @@ class Similarity:
             return np.concatenate((matrix_line[rotation_coefficient:],
                                    matrix_line[: rotation_coefficient + number_divisions]))
 
-    def compute_similarity_data(self, reference: Site, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
+    def compute_similarity_data(self, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
         temp_dissimilarity_data = np.full((env_data_target_matrices[0].shape[0], len(self.parameters_set.env_vars)),
                                           np.nan)
         for i, env_variable in enumerate(self.parameters_set.env_vars):
-            if len(reference.env_data[env_variable]) == 1:
+            if len(self.reference.env_data[env_variable]) == 1:
                 result = np.where(
-                    np.isnan(env_data_target_matrices[i]) | np.isnan(reference.env_data[env_variable]),
+                    np.isnan(env_data_target_matrices[i]) | np.isnan(self.reference.env_data[env_variable]),
                     np.nan,
-                    (env_data_target_matrices[i] - reference.env_data[env_variable]) ** 2
+                    (env_data_target_matrices[i] - self.reference.env_data[env_variable]) ** 2
                 )
                 result = Utils.perform_distance_normalization(np.sqrt(result), env_variable)
                 temp_dissimilarity_data[:, i] = np.squeeze(result * self.parameters_set.weights[i])
@@ -113,7 +141,7 @@ class Similarity:
                                       np.nan)
                 growing_season_indices = np.array(self.parameters_set.growing_season) - 1
                 first_matrix = env_data_target_matrices[i][:, growing_season_indices]
-                second_matrix = np.array(reference.env_data[env_variable])[growing_season_indices]
+                second_matrix = np.array(self.reference.env_data[env_variable])[growing_season_indices]
                 temp_matrix[:, growing_season_indices] = np.square(first_matrix - second_matrix)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", category=RuntimeWarning)
