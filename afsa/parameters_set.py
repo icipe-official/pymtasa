@@ -1,13 +1,13 @@
-from analogues.utils import Utils
+from afsa.utils import Utils
 
 
 class ParametersSet:
-    def __init__(self, x: float, y: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
+    def __init__(self, longitude: float, latitude: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
                  env_data_ref: list[list[str]], env_data_target: list[list[str]], growing_season: list[int],
-                 rotation: str, threshold: float, outfile: str, file_name: str, write_file: bool):
+                 rotation: str, threshold: float, absolute_mode: bool, outfile: str, file_name: str, write_file: bool):
         """
-            x (float) : longitude (decimal degrees) E.g: 5 \n
-            y (float) : latitude (decimal degrees) E.g: 5 \n
+            longitude (float) : longitude (decimal degrees) E.g: 5 \n
+            latitude (float) : latitude (decimal degrees) E.g: 5 \n
             env_vars (tuple) : a tuple with the name of the climatic variable(s) to use, e.g. ("prec","tmean"), or
                 bioclimatic variable e.g. "bio_1" \n
             weights (tuple) : tuple of length equal to the number of variables. Each value in the vector gives the
@@ -28,6 +28,8 @@ class ParametersSet:
                 hemisphere) \n
             threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
                 saved and displayed. \n
+            absolute_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value,
+                False for relative values \n
             outfile (string) : directory where the resultant similarity map will be saved \n
             file_name (string) :  name of output file \n
             write_file (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
@@ -37,8 +39,8 @@ class ParametersSet:
                     variables in number_divisions, env_data_ref & env_data_target
         """
 
-        self.longitude = x
-        self.latitude = y
+        self.longitude = longitude
+        self.latitude = latitude
         self.env_vars = env_vars
         self.weights = weights
         self.number_divisions = number_divisions
@@ -47,6 +49,7 @@ class ParametersSet:
         self.growing_season = growing_season
         self.rotation = rotation
         self.threshold = threshold
+        self.absolute_mode = absolute_mode
         self.outfile = outfile
         self.file_name = file_name
         self.write_file = write_file

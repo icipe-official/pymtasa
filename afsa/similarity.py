@@ -1,6 +1,6 @@
-from analogues.parameters_set import ParametersSet, Site
-from analogues.utils import Utils
-from analogues.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY
+from afsa.parameters_set import ParametersSet, Site
+from afsa.utils import Utils
+from afsa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY
 import warnings
 import numpy as np
 
@@ -9,6 +9,10 @@ class Similarity:
     """
         parameters_set (ParametersSet) : set of parameters used to compute the agro ecology similarity
         reference (Site) : site that will be used as reference to evaluate the agro ecology similarity
+        threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
+                saved and displayed.
+        absolute_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value, False
+            for relative value.
 
         Note :  We assume that the position of the variables in env_vars follows the same order as the position of the
                 variables in number_divisions & env_data_target
@@ -19,6 +23,8 @@ class Similarity:
         self.formatting_growing_season()
         self.reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
                               self.parameters_set.env_data_ref)
+        self.threshold = parameters_set.threshold
+        self.absolute_mode = parameters_set.absolute_mode
 
     def formatting_growing_season(self):
         growing_season = self.parameters_set.growing_season
@@ -116,13 +122,10 @@ class Similarity:
         else:
             number_divisions = self.parameters_set.number_divisions[self.parameters_set.env_vars.index("prec")]
         rotation_coefficient = int(rotation_coefficient)
-        if rotation_coefficient == 0 or abs(rotation_coefficient) == number_divisions:
+        if rotation_coefficient == 0 or rotation_coefficient == number_divisions:
             return matrix_line
-        elif rotation_coefficient >= 1:
-            return np.concatenate((matrix_line[rotation_coefficient:], matrix_line[:rotation_coefficient]))
         else:
-            return np.concatenate((matrix_line[rotation_coefficient:],
-                                   matrix_line[: rotation_coefficient + number_divisions]))
+            return np.concatenate((matrix_line[rotation_coefficient:], matrix_line[:rotation_coefficient]))
 
     def compute_similarity_data(self, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
         temp_dissimilarity_data = np.full((env_data_target_matrices[0].shape[0], len(self.parameters_set.env_vars)),
@@ -153,4 +156,11 @@ class Similarity:
             combined[:] = np.round(np.sum(temp_dissimilarity_data, axis=1), decimals=3)
         else:
             combined[:] = np.round(temp_dissimilarity_data[:], decimals=3)
+        if self.absolute_mode:
+            combined = np.where(combined < self.threshold, 0, combined)
+        else:
+            data_removal_percentage = 100 - (self.threshold * 100)
+            replacement_count = int((data_removal_percentage / 100) * np.sum(~np.isnan(combined)))
+            indices = np.argsort(combined, kind='mergesort', axis=None)[:replacement_count]
+            combined[indices] = 0
         return combined

@@ -1,5 +1,5 @@
 from osgeo import gdal
-from analogues.static_variables import NORMALIZATION_COEFFICIENTS
+from afsa.static_variables import NORMALIZATION_COEFFICIENTS
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,7 +35,7 @@ class Utils:
         for i, raster_path in enumerate(raster_stack):
             raster = gdal.Open(raster_path)
             band = raster.GetRasterBand(1)
-            values = band.ReadAsArray()
+            values = band.ReadAsArray().astype(float)
             values[values == band.GetNoDataValue()] = np.nan
             matrix[:, i] = values.ravel()
             raster = None
@@ -51,7 +51,7 @@ class Utils:
             for j, raster_path in enumerate(raster_stack):
                 raster = gdal.Open(raster_path)
                 band = raster.GetRasterBand(1)
-                values = band.ReadAsArray()
+                values = band.ReadAsArray().astype(float)
                 values[values == band.GetNoDataValue()] = np.nan
                 matrix[:, column_index] = values.ravel()
                 raster = None
@@ -73,16 +73,19 @@ class Utils:
             n = len(reference_vector)
             fourier1 = np.fft.fft(reference_vector)
             fourier2 = np.fft.fft(target_env_data_row)
-            phase1 = np.angle(fourier1)
-            phase2 = np.angle(fourier2)
-            rotation = round(((phase1[1] - phase2[1]) * (n / 2)) / np.pi, 0)
         else:
             n = reference_vector.shape[1]
-            fourier1 = np.fft.fft2(reference_vector)
-            fourier2 = np.fft.fft2(target_env_data_row)
+            fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
+            fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
+
+        if np.argmax(np.abs(fourier1[1:])) == np.argmax(np.abs(fourier2[1:])):
             phase1 = np.angle(fourier1)
             phase2 = np.angle(fourier2)
-            rotation = round(((phase1[1, 0] - phase2[1, 0]) * (n / 2)) / np.pi, 0)
+            rotation = round(((phase1[np.argmax(np.abs(fourier1[1:])) + 1] - phase2[
+                np.argmax(np.abs(fourier1[1:])) + 1]) * (n / 2)) / np.pi, 0) % n
+        else:
+            rotation = (n - np.real(np.fft.ifft(np.multiply(fourier1, np.conjugate(fourier2)))).argmax()) % n
+
         return rotation
 
     @staticmethod
@@ -99,7 +102,7 @@ class Utils:
         raster = gdal.Open(reference_tif_file_path)
         band = raster.GetRasterBand(1)
         file_path = os.path.join(directory, tif_name)
-        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, band.DataType)
+        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6)
         out_ds.SetProjection(raster.GetProjection())
         out_ds.SetGeoTransform(raster.GetGeoTransform())
         out_band = out_ds.GetRasterBand(1)
@@ -111,11 +114,13 @@ class Utils:
         return file_path
 
     @staticmethod
-    def plot_raster_file(file_path: str):
+    def plot_raster_file(file_path: str, longitude: float, latitude: float):
         ds = gdal.Open(file_path)
         data = ds.GetRasterBand(1).ReadAsArray()
         cmap = plt.cm.get_cmap('RdYlGn')
         plt.imshow(data, cmap=cmap)
         plt.colorbar()
+        x, y = map(int, gdal.ApplyGeoTransform(gdal.InvGeoTransform(ds.GetGeoTransform()), longitude, latitude))
+        plt.scatter(x, y, s=20, c='#00faf6', marker='X')
         plt.show()
         ds = None
