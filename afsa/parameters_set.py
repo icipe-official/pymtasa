@@ -3,8 +3,9 @@ from afsa.utils import Utils
 
 class ParametersSet:
     def __init__(self, longitude: float, latitude: float, env_vars: tuple, weights: tuple, number_divisions: tuple,
-                 env_data_ref: list[list[str]], env_data_target: list[list[str]], growing_season: list[int],
-                 rotation: str, threshold: float, absolute_mode: bool, outfile: str, file_name: str, write_file: bool):
+                 env_data_ref: list[list[str]], env_data_target: list[list[str]], analysis_period: list[int],
+                 rotation: str, rotation_mode: bool, threshold: float, threshold_mode: bool, outfile: str,
+                 file_name: str, write_file: bool):
         """
             longitude (float) : longitude (decimal degrees) E.g: 5 \n
             latitude (float) : latitude (decimal degrees) E.g: 5 \n
@@ -21,14 +22,17 @@ class ParametersSet:
             env_data_target (tuple) : a tuple of length equal to the number of variables that specifies the target
                 climatic conditions. Each element in the list is either a RasterLayer or a RasterStack object.
                 RasterLayer applies to bioclimatic variables, whereas RasterStack applies for monthly data. \n
-            growing_season (list) : growing season (months) of interest in the analysis. c Not relevant for bioclimatic
+            analysis_period (list) : period (months) of interest in the analysis. c Not relevant for bioclimatic
                 variables. E.g: [1,12] \n
             rotation (string) : should a rotation be applied. i.e. "tmean", "prec", "both" or "none".
                 Rotation will allow comparisons between sites with different seasonality (e.g. northern vs. southern
                 hemisphere) \n
+            rotation_mode (bool) : specify if the rotation will be absolute (i.e. the analysis period is used as basis)
+                or relative (i.e. the whole year will be used as abasis). True for absolute mode, False for relative
+                mode \n
             threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
                 saved and displayed. \n
-            absolute_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value,
+            threshold_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value,
                 False for relative values \n
             outfile (string) : directory where the resultant similarity map will be saved \n
             file_name (string) :  name of output file \n
@@ -46,10 +50,11 @@ class ParametersSet:
         self.number_divisions = number_divisions
         self.env_data_ref = env_data_ref
         self.env_data_target = env_data_target
-        self.growing_season = growing_season
+        self.analysis_period = analysis_period
         self.rotation = rotation
         self.threshold = threshold
-        self.absolute_mode = absolute_mode
+        self.rotation_mode = rotation_mode
+        self.threshold_mode = threshold_mode
         self.outfile = outfile
         self.file_name = file_name
         self.write_file = write_file

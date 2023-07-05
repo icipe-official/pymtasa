@@ -17,7 +17,9 @@ class Utils:
         inv_geo = gdal.InvGeoTransform(raster.GetGeoTransform())
         offsets = gdal.ApplyGeoTransform(inv_geo, x, y)
         x_off, y_off = map(int, offsets)
-        return raster.GetRasterBand(1).ReadAsArray(x_off, y_off, 1, 1)[0, 0]
+        matrix = raster.GetRasterBand(1).ReadAsArray(x_off, y_off, 1, 1)[0, 0]
+        raster = None
+        return matrix
 
     @staticmethod
     def get_dimension_raster_layer(tif_file_path: str) -> (int, int):
@@ -66,25 +68,45 @@ class Utils:
         return matrix_list
 
     @staticmethod
-    def compute_rotation_coefficient(reference_vector: np.ndarray, target_env_data_row: np.ndarray) -> float:
+    def compute_rotation_coefficient(rotation_mode: bool, analysis_period: list[int], reference_vector: np.ndarray,
+                                     target_env_data_row: np.ndarray) -> float:
         if len(target_env_data_row) == 1:
             return 0
-        if reference_vector.ndim == 1:
-            n = len(reference_vector)
-            fourier1 = np.fft.fft(reference_vector)
-            fourier2 = np.fft.fft(target_env_data_row)
+        if rotation_mode:
+            indices = np.array(analysis_period) - 1
+            if reference_vector.ndim == 1:
+                n = len(reference_vector)
+                reference_vector = np.concatenate((reference_vector[indices],
+                                                   np.array([0] * (n - len(indices)))))
+                fourier1 = np.fft.fft(reference_vector)
+                fourier2 = np.fft.fft(target_env_data_row)
+            else:
+                n = reference_vector.shape[1]
+                line1 = np.concatenate((reference_vector[0, :][indices],
+                                        np.array([0] * (n - len(indices)))))
+                line2 = np.concatenate((reference_vector[1, :][indices],
+                                        np.array([0] * (n - len(indices)))))
+                reference_vector = np.array([line1, line2])
+                fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
+                fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
+            rotation = (n - np.real(np.fft.ifft(np.conjugate(fourier2) * fourier1)).argmax()) % n
         else:
-            n = reference_vector.shape[1]
-            fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
-            fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
+            if reference_vector.ndim == 1:
+                n = len(reference_vector)
+                fourier1 = np.fft.fft(reference_vector)
+                fourier2 = np.fft.fft(target_env_data_row)
+            else:
+                n = reference_vector.shape[1]
+                fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
+                fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
 
-        if np.argmax(np.abs(fourier1[1:])) == np.argmax(np.abs(fourier2[1:])):
-            phase1 = np.angle(fourier1)
-            phase2 = np.angle(fourier2)
-            rotation = round(((phase1[np.argmax(np.abs(fourier1[1:])) + 1] - phase2[
-                np.argmax(np.abs(fourier1[1:])) + 1]) * (n / 2)) / np.pi, 0) % n
-        else:
-            rotation = (n - np.real(np.fft.ifft(np.multiply(fourier1, np.conjugate(fourier2)))).argmax()) % n
+            if np.argmax(np.abs(fourier1[1:])) == np.argmax(np.abs(fourier2[1:])):
+                phase1 = np.angle(fourier1)
+                phase2 = np.angle(fourier2)
+                rotation = round(((phase1[np.argmax(np.abs(fourier1[1:])) + 1] - phase2[
+                    np.argmax(np.abs(fourier1[1:])) + 1]) * (n / 2)) / np.pi, 0) % n
+            else:
+                rotation = (n - np.real(np.fft.ifft(np.multiply(fourier1, np.conjugate(fourier2)))).argmax()) % n
 
         return rotation
 
@@ -121,6 +143,6 @@ class Utils:
         plt.imshow(data, cmap=cmap)
         plt.colorbar()
         x, y = map(int, gdal.ApplyGeoTransform(gdal.InvGeoTransform(ds.GetGeoTransform()), longitude, latitude))
-        plt.scatter(x, y, s=20, c='#00faf6', marker='X')
+        plt.scatter(x, y, s=50, c='#00faf6', marker='X')
         plt.show()
         ds = None

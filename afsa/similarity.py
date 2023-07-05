@@ -1,3 +1,5 @@
+import time
+
 from afsa.parameters_set import ParametersSet, Site
 from afsa.utils import Utils
 from afsa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY
@@ -20,44 +22,49 @@ class Similarity:
 
     def __init__(self, parameters_set: ParametersSet):
         self.parameters_set = parameters_set
-        self.formatting_growing_season()
+        self.formatting_analysis_period()
         self.reference = Site(self.parameters_set.longitude, self.parameters_set.latitude, self.parameters_set.env_vars,
                               self.parameters_set.env_data_ref)
         self.threshold = parameters_set.threshold
-        self.absolute_mode = parameters_set.absolute_mode
+        self.rotation_mode = parameters_set.rotation_mode
+        self.threshold_mode = parameters_set.threshold_mode
 
-    def formatting_growing_season(self):
-        growing_season = self.parameters_set.growing_season
-        if len(growing_season) == 1:
-            tmp_result = growing_season
-        elif len(growing_season) == 2 and growing_season[0] > growing_season[1]:
+    def formatting_analysis_period(self):
+        analysis_period = self.parameters_set.analysis_period
+        if len(analysis_period) == 1:
+            tmp_result = analysis_period
+        elif len(analysis_period) == 2 and analysis_period[0] > analysis_period[1]:
             # E.g : [11, 2] must become [11, 12, 1, 2]
-            tmp_result = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1))
-        elif len(growing_season) == 2 and growing_season[0] < growing_season[1]:
+            tmp_result = list(range(analysis_period[0], 13)) + list(range(1, analysis_period[1] + 1))
+        elif len(analysis_period) == 2 and analysis_period[0] < analysis_period[1]:
             # E.g : [3, 5] must become [3, 4, 5]
-            tmp_result = list(range(growing_season[0], growing_season[1] + 1))
-        elif len(growing_season) == 4 and growing_season[0] > growing_season[1]:
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1))
+        elif len(analysis_period) == 4 and analysis_period[0] > analysis_period[1]:
             # E.g : [11, 3, 6, 8] must become [11, 12] + [1, 2, 3] + [6, 7, 8] = [11, 12, 1, 2, 3, 6, 7, 8]
-            tmp_result = list(range(growing_season[0], 13)) + list(range(1, growing_season[1] + 1)) + \
-                         list(range(growing_season[2], growing_season[3] + 1))
-        elif len(growing_season) == 4 and growing_season[2] > growing_season[3]:
+            tmp_result = list(range(analysis_period[0], 13)) + list(range(1, analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], analysis_period[3] + 1))
+        elif len(analysis_period) == 4 and analysis_period[2] > analysis_period[3]:
             # E.g : [6, 8, 11, 2] must become [6, 7, 8] + [11, 12] + [1, 2] = [6, 7, 8, 11, 12, 1, 2]
-            tmp_result = list(range(growing_season[0], growing_season[1] + 1)) + \
-                         list(range(growing_season[2], 13)) + list(range(1, growing_season[3] + 1))
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], 13)) + list(range(1, analysis_period[3] + 1))
         else:
             # E.g : [1, 3, 6, 8] must become [1, 2, 3] + [6, 7, 8] = [1, 2, 3, 6, 7, 8]
-            tmp_result = list(range(growing_season[0], growing_season[1] + 1)) + \
-                         list(range(growing_season[2], growing_season[3] + 1))
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], analysis_period[3] + 1))
 
-        self.parameters_set.growing_season = Utils.remove_duplicates(tmp_result)
+        self.parameters_set.analysis_period = Utils.remove_duplicates(tmp_result)
 
-    def compute_similarity_raster(self) -> str:
+    def compute_similarity_raster(self, start_time) -> str:
         if self.parameters_set.rotation is None:
             env_data_target_matrices = Utils.convert_raster_stack_list_into_matrix_list(
                 self.parameters_set.env_data_target)
         else:
             env_data_target_matrices = self.rotate_climate_data()
+        print("Step 1 Over !!!!")
+        print("Process Time Rotation computation : ----%.2f----" % (time.time() - start_time))
         similarity_data = self.compute_similarity_data(env_data_target_matrices)
+        print("Step 2 Over !!!!")
+        print("Process Time Similarity computation : ----%.2f----" % (time.time() - start_time))
         if self.parameters_set.write_file:
             return Utils.create_tiff_file_from_array(similarity_data, RESULTS_DIRECTORY,
                                                      self.parameters_set.file_name + ".tif",
@@ -69,16 +76,15 @@ class Similarity:
     def rotate_climate_data(self) -> list[np.ndarray]:
         rotation_matrix = self.compute_rotation_matrix()
         env_data_target_matrices = []
-        for env_var in ("prec", "tmean", "tmin", "tmax"):
-            if env_var in self.parameters_set.env_vars:
-                index = self.parameters_set.env_vars.index(env_var)
-                env_data_target_matrix = Utils.convert_raster_stack_into_matrix(
-                    self.parameters_set.env_data_target[index])
-                valid_values_indices = np.where(~np.isnan(rotation_matrix))[0]
-                for index in valid_values_indices:
-                    env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_matrix[index],
-                                                                                  env_data_target_matrix[index, :])
-                env_data_target_matrices.append(env_data_target_matrix)
+        for i, env_variable in enumerate(self.parameters_set.env_vars):
+            index = self.parameters_set.env_vars.index(env_variable)
+            env_data_target_matrix = Utils.convert_raster_stack_into_matrix(
+                self.parameters_set.env_data_target[index])
+            valid_values_indices = np.where(~np.isnan(rotation_matrix))[0]
+            for index in valid_values_indices:
+                env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_matrix[index],
+                                                                              env_data_target_matrix[index, :])
+            env_data_target_matrices.append(env_data_target_matrix)
         return env_data_target_matrices
 
     def compute_rotation_matrix(self) -> np.ndarray:
@@ -92,7 +98,9 @@ class Similarity:
             valid_values_indices = np.where(~np.isnan(first_column_specific_env_data_target_matrix))[0]
             for index in valid_values_indices:
                 if not np.any(np.isnan(specific_env_data_target_matrix[index])):
-                    rotation_data[index] = Utils.compute_rotation_coefficient(specific_env_data_reference_vector,
+                    rotation_data[index] = Utils.compute_rotation_coefficient(self.rotation_mode,
+                                                                              self.parameters_set.analysis_period,
+                                                                              specific_env_data_reference_vector,
                                                                               specific_env_data_target_matrix[index])
                 else:
                     rotation_data[index] = 0
@@ -111,7 +119,9 @@ class Similarity:
             for index in valid_values_indices:
                 first_row = specific_env_data_target_matrix[index, :num_div]
                 last_row = specific_env_data_target_matrix[index, num_div:num_div2]
-                rotation_data[index] = Utils.compute_rotation_coefficient(specific_env_data_reference_matrix,
+                rotation_data[index] = Utils.compute_rotation_coefficient(self.rotation_mode,
+                                                                          self.parameters_set.analysis_period,
+                                                                          specific_env_data_reference_matrix,
                                                                           np.array([first_row, last_row]))
         return rotation_data
 
@@ -128,6 +138,7 @@ class Similarity:
             return np.concatenate((matrix_line[rotation_coefficient:], matrix_line[:rotation_coefficient]))
 
     def compute_similarity_data(self, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
+        print("BEGINNING OF THE SIMILARITY COMPUTATION")
         temp_dissimilarity_data = np.full((env_data_target_matrices[0].shape[0], len(self.parameters_set.env_vars)),
                                           np.nan)
         for i, env_variable in enumerate(self.parameters_set.env_vars):
@@ -142,7 +153,7 @@ class Similarity:
             else:
                 temp_matrix = np.full((env_data_target_matrices[0].shape[0], self.parameters_set.number_divisions[i]),
                                       np.nan)
-                growing_season_indices = np.array(self.parameters_set.growing_season) - 1
+                growing_season_indices = np.array(self.parameters_set.analysis_period) - 1
                 first_matrix = env_data_target_matrices[i][:, growing_season_indices]
                 second_matrix = np.array(self.reference.env_data[env_variable])[growing_season_indices]
                 temp_matrix[:, growing_season_indices] = np.square(first_matrix - second_matrix)
@@ -156,9 +167,9 @@ class Similarity:
             combined[:] = np.round(np.sum(temp_dissimilarity_data, axis=1), decimals=3)
         else:
             combined[:] = np.round(temp_dissimilarity_data[:], decimals=3)
-        if self.absolute_mode:
+        if self.threshold_mode and self.threshold > 0:
             combined = np.where(combined < self.threshold, 0, combined)
-        else:
+        elif not self.threshold_mode:
             data_removal_percentage = 100 - (self.threshold * 100)
             replacement_count = int((data_removal_percentage / 100) * np.sum(~np.isnan(combined)))
             indices = np.argsort(combined, kind='mergesort', axis=None)[:replacement_count]
