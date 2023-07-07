@@ -90,11 +90,17 @@ class Similarity:
 
     def mp_rotate_climate_data(self) -> list[np.ndarray]:
         rotation_matrix = self.mp_compute_rotation_matrix()
-        with mp.Pool() as pool:
-            indices = range(len(self.parameters_set.env_vars))
-            args = [(i, rotation_matrix) for i in indices]
-            env_data_target_matrices = pool.map(self.perform_line_rotation_parallel, args)
-
+        print("AT LEAST HERE !!!")
+        env_data_target_matrices = []
+        for i, env_variable in enumerate(self.parameters_set.env_vars):
+            index = self.parameters_set.env_vars.index(env_variable)
+            env_data_target_matrix = Utils.convert_raster_stack_into_matrix(
+                self.parameters_set.env_data_target[index])
+            valid_values_indices = np.where(~np.isnan(rotation_matrix))[0]
+            for index in valid_values_indices:
+                env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_matrix[index],
+                                                                              env_data_target_matrix[index, :])
+            env_data_target_matrices.append(env_data_target_matrix)
         return env_data_target_matrices
 
     def perform_line_rotation_parallel(self, args):
@@ -144,15 +150,15 @@ class Similarity:
                                                                           np.array([first_row, last_row]))
         return rotation_data
 
-    def compute_rotation_coefficient_parallel(self, args):
-        index, specific_env_data_reference_matrix, target_row, num_div = args
-        first_row = target_row[:num_div]
-        last_row = target_row[num_div:(num_div * 2)]
-        rotation_coefficient = Utils.compute_rotation_coefficient(self.rotation_mode,
-                                                                  self.parameters_set.analysis_period,
-                                                                  specific_env_data_reference_matrix,
-                                                                  np.array([first_row, last_row]))
-        return index, rotation_coefficient
+    def compute_rotation_coefficient_parallel(self, arguments):
+        i, target_row, div, shared_reference_matrix = arguments
+        first_row = target_row[:div]
+        last_row = target_row[div:(div * 2)]
+        coefficient = Utils.compute_rotation_coefficient(self.rotation_mode,
+                                                         self.parameters_set.analysis_period,
+                                                         shared_reference_matrix,
+                                                         np.array([first_row, last_row]))
+        return i, coefficient
 
     def mp_compute_rotation_matrix(self) -> np.ndarray:
         if self.parameters_set.rotation in ("prec", "tmean"):
@@ -172,26 +178,33 @@ class Similarity:
                 else:
                     rotation_data[index] = 0
         else:
-            specific_env_data_reference_matrix = np.array([self.reference.env_data["tmean"],
-                                                           self.reference.env_data["prec"]])
-            index_tmean, index_prec = self.parameters_set.env_vars.index("tmean"), self.parameters_set.env_vars.index(
-                "prec")
-            specific_env_data_target_matrix = Utils.convert_raster_stack_list_into_matrix([
-                self.parameters_set.env_data_target[index_tmean], self.parameters_set.env_data_target[index_prec]])
-            rotation_data = np.array([np.nan] * len(specific_env_data_target_matrix))
-            valid_values = ~np.isnan(specific_env_data_target_matrix[:, 0])
-            valid_values_indices = np.where(valid_values)[0]
-            valid_target_matrix = specific_env_data_target_matrix[valid_values]
-            num_div = self.parameters_set.number_divisions[0]
+            rotation_data = self.mp_compute_absolute_rotation_matrix()
+        return rotation_data
 
-            pool = mp.Pool()
-            args = [(valid_values_indices[i], specific_env_data_reference_matrix, valid_target_matrix[i], num_div)
-                    for i in range(len(valid_values_indices))]
-            results = pool.map(self.compute_rotation_coefficient_parallel, args)
-            for index, rotation_coefficient in results:
-                rotation_data[index] = rotation_coefficient
-            pool.close()
-            pool.join()
+    def mp_compute_absolute_rotation_matrix(self) -> np.ndarray:
+        specific_env_data_reference_matrix = np.array([self.reference.env_data["tmean"],
+                                                       self.reference.env_data["prec"]])
+        shared_array = mp.RawArray('d', specific_env_data_reference_matrix.flatten())
+        shared_matrix = np.frombuffer(shared_array, dtype=np.float64).reshape(
+            specific_env_data_reference_matrix.shape)
+        index_tmean, index_prec = self.parameters_set.env_vars.index("tmean"), self.parameters_set.env_vars.index(
+            "prec")
+        specific_env_data_target_matrix = Utils.convert_raster_stack_list_into_matrix([
+            self.parameters_set.env_data_target[index_tmean], self.parameters_set.env_data_target[index_prec]])
+        rotation_data = np.array([np.nan] * len(specific_env_data_target_matrix))
+        valid_values = ~np.isnan(specific_env_data_target_matrix[:, 0])
+        valid_values_indices = np.where(valid_values)[0]
+        valid_target_matrix = specific_env_data_target_matrix[valid_values]
+        num_div = self.parameters_set.number_divisions[0]
+
+        pool = mp.Pool()
+        args = [(valid_values_indices[i], valid_target_matrix[i], num_div, shared_matrix)
+                for i in range(len(valid_values_indices))]
+        results = pool.map(self.compute_rotation_coefficient_parallel, args)
+        for index, rotation_coefficient in results:
+            rotation_data[index] = rotation_coefficient
+        pool.close()
+        pool.join()
         return rotation_data
 
     def perform_line_rotation(self, rotation_coefficient: int, matrix_line: np.ndarray) -> np.ndarray:

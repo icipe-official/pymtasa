@@ -7,18 +7,18 @@ import time
 if __name__ == '__main__':
     start_time = time.time()
     parameters = ParametersSet(
-        longitude=35.12518,
-        latitude=-15.06001,
+        longitude=-2.1949567,
+        latitude=7.31909,
         env_vars=("prec", "tmean", "rsds", "wdsp"),
-        weights=(0.25, 0.3, 0.2, 0.2),
+        weights=(0.25, 0.35, 0.2, 0.2),
         number_divisions=(12, 12, 12, 12),
         env_data_ref=RASTER_STACK_ENV_DATA,
         env_data_target=RASTER_STACK_ENV_DATA,
-        analysis_period=[11, 12],
+        analysis_period=[8, 12],
         rotation="both",
-        threshold=0.35,
+        threshold=0,
         rotation_mode=True,
-        threshold_mode=False,
+        threshold_mode=True,
         outfile=RESULTS_DIRECTORY,
         file_name="results",
         write_file=True
