@@ -1,6 +1,6 @@
-from osgeo import gdal
-from afsa.static_variables import NORMALIZATION_COEFFICIENTS
 import os
+
+from osgeo import gdal
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -16,7 +16,7 @@ class Utils:
         raster = gdal.Open(tif_file_path)
         inv_geo = gdal.InvGeoTransform(raster.GetGeoTransform())
         offsets = gdal.ApplyGeoTransform(inv_geo, x, y)
-        x_off, y_off = map(int, offsets)
+        x_off, y_off = int(offsets[0]), int(offsets[1])
         matrix = raster.GetRasterBand(1).ReadAsArray(x_off, y_off, 1, 1)[0, 0]
         raster = None
         return matrix
@@ -49,8 +49,8 @@ class Utils:
         dimensions = Utils.get_dimension_raster_layer(raster_stack_list[0][0])
         matrix = np.zeros((dimensions[0] * dimensions[1], num_columns))
         column_index = 0
-        for i, raster_stack in enumerate(raster_stack_list):
-            for j, raster_path in enumerate(raster_stack):
+        for raster_stack in raster_stack_list:
+            for raster_path in raster_stack:
                 raster = gdal.Open(raster_path)
                 band = raster.GetRasterBand(1)
                 values = band.ReadAsArray().astype(float)
@@ -72,49 +72,43 @@ class Utils:
                                      target_env_data_row: np.ndarray) -> float:
         if len(target_env_data_row) == 1:
             return 0
+
+        n = reference_vector.shape[1] if reference_vector.ndim != 1 else len(reference_vector)
+
         if rotation_mode:
             indices = np.array(analysis_period) - 1
             if reference_vector.ndim == 1:
-                n = len(reference_vector)
-                reference_vector = np.concatenate((reference_vector[indices],
-                                                   np.array([0] * (n - len(indices)))))
-                fourier1 = np.fft.fft(reference_vector)
+                analysis_reference_vector = np.zeros(n)
+                analysis_reference_vector[indices] = reference_vector[indices]
+                fourier1 = np.fft.fft(analysis_reference_vector)
                 fourier2 = np.fft.fft(target_env_data_row)
             else:
-                n = reference_vector.shape[1]
-                line1 = np.concatenate((reference_vector[0, :][indices],
-                                        np.array([0] * (n - len(indices)))))
-                line2 = np.concatenate((reference_vector[1, :][indices],
-                                        np.array([0] * (n - len(indices)))))
-                reference_vector = np.array([line1, line2])
-                fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
+                analysis_reference_matrix = np.zeros((2, n))
+                analysis_reference_matrix[0, indices] = reference_vector[0, :][indices]
+                analysis_reference_matrix[1, indices] = reference_vector[1, :][indices]
+                fourier1 = np.sum(np.fft.fft(analysis_reference_matrix), axis=0)
                 fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
-            rotation = (n - np.real(np.fft.ifft(np.conjugate(fourier2) * fourier1)).argmax()) % n
+            return (n - np.real(np.fft.ifft(np.conjugate(fourier2) * fourier1)).argmax()) % n
         else:
             if reference_vector.ndim == 1:
-                n = len(reference_vector)
                 fourier1 = np.fft.fft(reference_vector)
                 fourier2 = np.fft.fft(target_env_data_row)
             else:
-                n = reference_vector.shape[1]
                 fourier1 = np.sum(np.fft.fft(reference_vector), axis=0)
                 fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
 
-            if np.argmax(np.abs(fourier1[1:])) == np.argmax(np.abs(fourier2[1:])):
+            highest_frequency_component_pos_fourier1 = np.argmax(np.abs(fourier1[1:]))
+
+            if highest_frequency_component_pos_fourier1 == np.argmax(np.abs(fourier2[1:])):
                 phase1 = np.angle(fourier1)
                 phase2 = np.angle(fourier2)
-                rotation = round(((phase1[np.argmax(np.abs(fourier1[1:])) + 1] - phase2[
-                    np.argmax(np.abs(fourier1[1:])) + 1]) * (n / 2)) / np.pi, 0) % n
+                return round(((phase1[highest_frequency_component_pos_fourier1 + 1] - phase2[
+                    highest_frequency_component_pos_fourier1 + 1]) * (n / 2)) / np.pi, 0) % n
             else:
-                rotation = (n - np.real(np.fft.ifft(np.multiply(fourier1, np.conjugate(fourier2)))).argmax()) % n
-
-        return rotation
+                return (n - np.real(np.fft.ifft(np.multiply(fourier1, np.conjugate(fourier2)))).argmax()) % n
 
     @staticmethod
-    def perform_distance_normalization(distances: np.ndarray, env_variable) -> np.array:
-        normalization_coefficient = 10
-        if env_variable in NORMALIZATION_COEFFICIENTS:
-            normalization_coefficient = NORMALIZATION_COEFFICIENTS[env_variable]
+    def perform_distance_normalization(distances: np.ndarray, normalization_coefficient: int) -> np.array:
         return normalization_coefficient / (normalization_coefficient + distances)
 
     @staticmethod
@@ -124,7 +118,8 @@ class Utils:
         raster = gdal.Open(reference_tif_file_path)
         band = raster.GetRasterBand(1)
         file_path = os.path.join(directory, tif_name)
-        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6)
+        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6,
+                                     options=['TILED=YES', 'COMPRESS=DEFLATE'])
         out_ds.SetProjection(raster.GetProjection())
         out_ds.SetGeoTransform(raster.GetGeoTransform())
         out_band = out_ds.GetRasterBand(1)
