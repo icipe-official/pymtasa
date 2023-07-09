@@ -79,13 +79,13 @@ class Utils:
             indices = np.array(analysis_period) - 1
             if reference_vector.ndim == 1:
                 analysis_reference_vector = np.zeros(n)
-                analysis_reference_vector[indices] = reference_vector[indices]
+                analysis_reference_vector[range(len(indices))] = reference_vector[indices]
                 fourier1 = np.fft.fft(analysis_reference_vector)
                 fourier2 = np.fft.fft(target_env_data_row)
             else:
                 analysis_reference_matrix = np.zeros((2, n))
-                analysis_reference_matrix[0, indices] = reference_vector[0, :][indices]
-                analysis_reference_matrix[1, indices] = reference_vector[1, :][indices]
+                analysis_reference_matrix[0, range(len(indices))] = reference_vector[0, :][indices]
+                analysis_reference_matrix[1, range(len(indices))] = reference_vector[1, :][indices]
                 fourier1 = np.sum(np.fft.fft(analysis_reference_matrix), axis=0)
                 fourier2 = np.sum(np.fft.fft(target_env_data_row), axis=0)
             return (n - np.real(np.fft.ifft(np.conjugate(fourier2) * fourier1)).argmax()) % n
@@ -118,8 +118,7 @@ class Utils:
         raster = gdal.Open(reference_tif_file_path)
         band = raster.GetRasterBand(1)
         file_path = os.path.join(directory, tif_name)
-        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6,
-                                     options=['TILED=YES', 'COMPRESS=DEFLATE'])
+        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6)
         out_ds.SetProjection(raster.GetProjection())
         out_ds.SetGeoTransform(raster.GetGeoTransform())
         out_band = out_ds.GetRasterBand(1)

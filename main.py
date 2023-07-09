@@ -10,7 +10,7 @@ if __name__ == '__main__':
         longitude=-2.1949567,
         latitude=7.31909,
         env_vars=("prec", "tmean", "rsds", "wdsp"),
-        weights=(0.25, 0.35, 0.2, 0.2),
+        weights=(0.25, 0.3, 0.2, 0.2),
         number_divisions=(12, 12, 12, 12),
         env_data_ref=RASTER_STACK_ENV_DATA,
         env_data_target=RASTER_STACK_ENV_DATA,

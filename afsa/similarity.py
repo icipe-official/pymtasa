@@ -1,5 +1,6 @@
 import time
 import multiprocessing as mp
+import gc
 
 from afsa.parameters_set import ParametersSet, Site
 from afsa.utils import Utils
@@ -64,6 +65,8 @@ class Similarity:
         print("Step 1 Over !!!!")
         print("Process Time Rotation computation : ----%.2f----" % (time.time() - start_time))
         similarity_data = self.compute_similarity_data(env_data_target_matrices)
+        del env_data_target_matrices
+        gc.collect()
         print("Step 2 Over !!!!")
         print("Process Time Similarity computation : ----%.2f----" % (time.time() - start_time))
         if self.parameters_set.write_file:
@@ -90,6 +93,8 @@ class Similarity:
 
     def mp_rotate_climate_data(self) -> list[np.ndarray]:
         rotation_matrix = self.mp_compute_rotation_matrix()
+        fp = Utils.create_tiff_file_from_array(rotation_matrix, TMP_DIRECTORY, "new_mp_rot.tif",
+                                               self.parameters_set.env_data_target[0][0])
         print("AT LEAST HERE !!!")
         env_data_target_matrices = []
         for i, env_variable in enumerate(self.parameters_set.env_vars):
