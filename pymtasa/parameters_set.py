@@ -1,4 +1,4 @@
-from afsa.utils import Utils
+from pymtasa.utils import Utils
 
 
 class ParametersSet:

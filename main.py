@@ -1,7 +1,7 @@
-from afsa.parameters_set import ParametersSet
-from afsa.similarity import Similarity
-from afsa.utils import Utils
-from afsa.static_variables import RESULTS_DIRECTORY, RASTER_STACK_ENV_DATA
+from pymtasa.parameters_set import ParametersSet
+from pymtasa.similarity import Similarity
+from pymtasa.utils import Utils
+from pymtasa.static_variables import RESULTS_DIRECTORY, RASTER_STACK_ENV_DATA
 import time
 
 if __name__ == '__main__':

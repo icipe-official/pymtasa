@@ -2,9 +2,9 @@ import time
 import multiprocessing as mp
 import gc
 
-from afsa.parameters_set import ParametersSet, Site
-from afsa.utils import Utils
-from afsa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY, NORMALIZATION_COEFFICIENTS
+from pymtasa.parameters_set import ParametersSet, Site
+from pymtasa.utils import Utils
+from pymtasa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY, NORMALIZATION_COEFFICIENTS
 import warnings
 import numpy as np
 
@@ -93,9 +93,6 @@ class Similarity:
 
     def mp_rotate_climate_data(self) -> list[np.ndarray]:
         rotation_matrix = self.mp_compute_rotation_matrix()
-        fp = Utils.create_tiff_file_from_array(rotation_matrix, TMP_DIRECTORY, "new_mp_rot.tif",
-                                               self.parameters_set.env_data_target[0][0])
-        print("AT LEAST HERE !!!")
         env_data_target_matrices = []
         for i, env_variable in enumerate(self.parameters_set.env_vars):
             index = self.parameters_set.env_vars.index(env_variable)
@@ -222,7 +219,7 @@ class Similarity:
         if rotation_coefficient == 0 or rotation_coefficient == number_divisions:
             return matrix_line
         else:
-            return np.roll(matrix_line, rotation_coefficient)
+            return np.concatenate((matrix_line[rotation_coefficient:], matrix_line[:rotation_coefficient]))
 
     def compute_similarity_data(self, env_data_target_matrices: list[np.ndarray]) -> np.ndarray:
         print("BEGINNING OF THE SIMILARITY COMPUTATION")
