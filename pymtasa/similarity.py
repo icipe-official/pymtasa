@@ -2,9 +2,9 @@ import time
 import multiprocessing as mp
 import gc
 
-from afsa.parameters_set import ParametersSet, Site
-from afsa.utils import Utils
-from afsa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY, NORMALIZATION_COEFFICIENTS
+from pymtasa.parameters_set import ParametersSet, Site
+from pymtasa.utils import Utils
+from pymtasa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY, NORMALIZATION_COEFFICIENTS
 import warnings
 import numpy as np
 
