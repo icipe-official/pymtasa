@@ -2,7 +2,7 @@ import time
 import multiprocessing as mp
 import gc
 
-from pymtasa.parameters_set import ParametersSet, Site
+from pymtasa.parameters_set import ParametersSet, Site, MTASASite, MTASAParametersSet
 from pymtasa.utils import Utils
 from pymtasa.static_variables import RESULTS_DIRECTORY, TMP_DIRECTORY, NORMALIZATION_COEFFICIENTS
 import warnings
@@ -256,3 +256,111 @@ class Similarity:
             indices = np.argsort(combined, kind='mergesort', axis=None)[:replacement_count]
             combined[indices] = 0
         return combined
+
+
+class MTASASimilarity:
+    """
+        parameters_set (ParametersSet) : set of parameters used to compute the agro ecology similarity
+        reference (Site) : site that will be used as reference to evaluate the agro ecology similarity
+        threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
+                saved and displayed.
+        absolute_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value, False
+            for relative value.
+
+        Note :  We assume that the position of the variables in env_vars follows the same order as the position of the
+                variables in number_divisions & data_target
+    """
+
+    def __init__(self, parameters_set: MTASAParametersSet):
+        self.parameters_set = parameters_set
+        self.formatting_analysis_period()
+        self.reference = MTASASite(self.parameters_set.measurement_vars, self.parameters_set.ref_data)
+        self.threshold = parameters_set.threshold
+        self.rotation_mode = parameters_set.rotation_mode
+        self.threshold_mode = parameters_set.threshold_mode
+
+    def formatting_analysis_period(self):
+        analysis_period = self.parameters_set.analysis_period
+        if len(analysis_period) == 1:
+            tmp_result = analysis_period
+        elif len(analysis_period) == 2 and analysis_period[0] > analysis_period[1]:
+            # E.g : [11, 2] must become [11, 12, 1, 2]
+            tmp_result = list(range(analysis_period[0], 13)) + list(range(1, analysis_period[1] + 1))
+        elif len(analysis_period) == 2 and analysis_period[0] < analysis_period[1]:
+            # E.g : [3, 5] must become [3, 4, 5]
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1))
+        elif len(analysis_period) == 4 and analysis_period[0] > analysis_period[1]:
+            # E.g : [11, 3, 6, 8] must become [11, 12] + [1, 2, 3] + [6, 7, 8] = [11, 12, 1, 2, 3, 6, 7, 8]
+            tmp_result = list(range(analysis_period[0], 13)) + list(range(1, analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], analysis_period[3] + 1))
+        elif len(analysis_period) == 4 and analysis_period[2] > analysis_period[3]:
+            # E.g : [6, 8, 11, 2] must become [6, 7, 8] + [11, 12] + [1, 2] = [6, 7, 8, 11, 12, 1, 2]
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], 13)) + list(range(1, analysis_period[3] + 1))
+        else:
+            # E.g : [1, 3, 6, 8] must become [1, 2, 3] + [6, 7, 8] = [1, 2, 3, 6, 7, 8]
+            tmp_result = list(range(analysis_period[0], analysis_period[1] + 1)) + \
+                         list(range(analysis_period[2], analysis_period[3] + 1))
+
+        self.parameters_set.analysis_period = Utils.remove_duplicates(tmp_result)
+
+    def compute_similarity_matrix(self, start_time) -> str:
+        if self.parameters_set.rotation is None or len(self.parameters_set.rotation) == 0:
+            target_data_matrices = Utils.convert_time_series_dataset_into_matrix_list(
+                self.parameters_set.target_data, self.parameters_set.headers_indices)
+        else:
+            target_data_matrices = self.mp_rotate_climate_data()
+
+        print("Step 1 Over !!!!")
+        # print("Process Time Rotation computation : ----%.2f----" % (time.time() - start_time))
+        # similarity_data = self.compute_similarity_data(env_data_target_matrices)
+        # del env_data_target_matrices
+        # gc.collect()
+        # print("Step 2 Over !!!!")
+        # print("Process Time Similarity computation : ----%.2f----" % (time.time() - start_time))
+        # if self.parameters_set.write_file:
+        #     return Utils.create_tiff_file_from_array(similarity_data, RESULTS_DIRECTORY,
+        #                                              self.parameters_set.file_name + ".tif",
+        #                                              self.parameters_set.env_data_target[0][0])
+        # return Utils.create_tiff_file_from_array(similarity_data, TMP_DIRECTORY,
+        #                                          self.parameters_set.file_name + ".tif",
+        #                                          self.parameters_set.env_data_target[0][0])
+
+    def mp_rotate_climate_data(self) -> list[np.ndarray]:
+        rotation_matrix = self.mp_compute_rotation_matrix()
+        print("Hello")
+        # env_data_target_matrices = []
+        # for i, env_variable in enumerate(self.parameters_set.env_vars):
+        #     index = self.parameters_set.env_vars.index(env_variable)
+        #     env_data_target_matrix = Utils.convert_raster_stack_into_matrix(
+        #         self.parameters_set.env_data_target[index])
+        #     valid_values_indices = np.where(~np.isnan(rotation_matrix))[0]
+        #     for index in valid_values_indices:
+        #         env_data_target_matrix[index, :] = self.perform_line_rotation(rotation_matrix[index],
+        #                                                                       env_data_target_matrix[index, :])
+        #     env_data_target_matrices.append(env_data_target_matrix)
+        # return env_data_target_matrices
+
+    def mp_compute_rotation_matrix(self) -> np.ndarray:
+        if len(self.parameters_set.rotation) == 1:
+            specific_reference_data_vector = np.array(self.reference.data[self.parameters_set.rotation])
+            specific_target_data_paths = self.parameters_set.target_data[0]
+            specific_target_data_matrix = Utils.csv_into_matrix(specific_target_data_paths,
+                                                                self.parameters_set.headers_indices[0])
+            first_column_specific_target_data_matrix = specific_target_data_matrix[:, 0]
+            rotation_data = np.array([np.nan] * len(first_column_specific_target_data_matrix))
+            valid_values_indices = np.where(~np.isnan(first_column_specific_target_data_matrix))[0]
+            for index in valid_values_indices:
+                if not np.any(np.isnan(first_column_specific_target_data_matrix[index])):
+                    rotation_data[index] = Utils.compute_rotation_coefficient(self.rotation_mode,
+                                                                              self.parameters_set.analysis_period,
+                                                                              specific_reference_data_vector,
+                                                                              specific_target_data_matrix[
+                                                                                  index])
+                else:
+                    rotation_data[index] = 0
+        else:
+            rotation_data = 0
+            #rotation_data = self.mp_compute_absolute_rotation_matrix()
+        return rotation_data
+

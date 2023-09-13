@@ -1,5 +1,6 @@
 import os
 
+import csv
 from osgeo import gdal
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,6 +30,13 @@ class Utils:
         height = band.YSize
         raster = None
         return width, height
+
+    @staticmethod
+    def get_length_csv_file(tif_file_path: str) -> int:
+        with open(tif_file_path, mode='r') as file:
+            reader = csv.reader(file)
+            row_count = sum(1 for row in reader)
+        return row_count
 
     @staticmethod
     def convert_raster_stack_into_matrix(raster_stack: list[str]) -> np.ndarray:
@@ -61,10 +69,33 @@ class Utils:
         return matrix
 
     @staticmethod
+    def convert_raster_stack_list_into_matrix_coords(raster_stack_list: list[list[str]]) -> np.ndarray:
+        raster = gdal.Open(raster_stack_list[0][0])
+        geotransform = raster.GetGeoTransform()
+        band = raster.GetRasterBand(1)
+        cols = raster.RasterXSize
+        rows = raster.RasterYSize
+        matrix = np.zeros((cols * rows, 2))
+        for y in range(rows):
+            for x in range(cols):
+                pixel_value = band.ReadAsArray(x, y, 1, 1)[0][0]
+                lon = geotransform[0] + x * geotransform[1] + y * geotransform[2]
+                lat = geotransform[3] + x * geotransform[4] + y * geotransform[5]
+                matrix[y * cols + x] = [lon, lat]
+        return matrix
+
+    @staticmethod
     def convert_raster_stack_list_into_matrix_list(raster_stack_list: list[list[str]]) -> list[np.ndarray]:
         matrix_list = []
         for raster_stack in raster_stack_list:
             matrix_list.append(Utils.convert_raster_stack_list_into_matrix([raster_stack]))
+        return matrix_list
+
+    @staticmethod
+    def convert_raster_stack_list_into_matrix_list_coords(raster_stack_list: list[list[str]]) -> list[np.ndarray]:
+        matrix_list = []
+        for raster_stack in raster_stack_list:
+            matrix_list.append(Utils.convert_raster_stack_list_into_matrix_coords([raster_stack]))
         return matrix_list
 
     @staticmethod
@@ -140,3 +171,17 @@ class Utils:
         plt.scatter(x, y, s=50, c='#00faf6', marker='X')
         plt.show()
         ds = None
+
+    @staticmethod
+    def convert_time_series_dataset_into_matrix_list(target_data: list[str],
+                                                     headers_indices: list[list[int]]) -> list[np.ndarray]:
+        matrix_list = [Utils.csv_into_matrix(file_path, headers_indices[i]) for i, file_path in enumerate(target_data)]
+        return matrix_list
+
+    @staticmethod
+    def csv_into_matrix(file_path: str, headers_indices: list[int]) -> np.ndarray:
+        with open(file_path, mode='r') as file:
+            reader = csv.reader(file)
+            next(reader)
+            matrix = [[row[i] for i in headers_indices] for row in reader]
+        return np.array(matrix, dtype=np.float64)
