@@ -1,8 +1,6 @@
 import os
 
 import csv
-from osgeo import gdal
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -11,92 +9,6 @@ class Utils:
     def remove_duplicates(lst: list) -> list:
         seen = set()
         return [x for x in lst if not (x in seen or seen.add(x))]
-
-    @staticmethod
-    def extract_value_from_tif_with_map_coord(tif_file_path: str, x: float, y: float) -> float:
-        raster = gdal.Open(tif_file_path)
-        inv_geo = gdal.InvGeoTransform(raster.GetGeoTransform())
-        offsets = gdal.ApplyGeoTransform(inv_geo, x, y)
-        x_off, y_off = int(offsets[0]), int(offsets[1])
-        matrix = raster.GetRasterBand(1).ReadAsArray(x_off, y_off, 1, 1)[0, 0]
-        raster = None
-        return matrix
-
-    @staticmethod
-    def get_dimension_raster_layer(tif_file_path: str) -> (int, int):
-        raster = gdal.Open(tif_file_path)
-        band = raster.GetRasterBand(1)
-        width = band.XSize
-        height = band.YSize
-        raster = None
-        return width, height
-
-    @staticmethod
-    def get_length_csv_file(tif_file_path: str) -> int:
-        with open(tif_file_path, mode='r') as file:
-            reader = csv.reader(file)
-            row_count = sum(1 for row in reader)
-        return row_count
-
-    @staticmethod
-    def convert_raster_stack_into_matrix(raster_stack: list[str]) -> np.ndarray:
-        dimensions = Utils.get_dimension_raster_layer(raster_stack[0])
-        matrix = np.zeros((dimensions[0] * dimensions[1], len(raster_stack)))
-        for i, raster_path in enumerate(raster_stack):
-            raster = gdal.Open(raster_path)
-            band = raster.GetRasterBand(1)
-            values = band.ReadAsArray().astype(float)
-            values[values == band.GetNoDataValue()] = np.nan
-            matrix[:, i] = values.ravel()
-            raster = None
-        return matrix
-
-    @staticmethod
-    def convert_raster_stack_list_into_matrix(raster_stack_list: list[list[str]]) -> np.ndarray:
-        num_columns = sum(len(raster_stack) for raster_stack in raster_stack_list)
-        dimensions = Utils.get_dimension_raster_layer(raster_stack_list[0][0])
-        matrix = np.zeros((dimensions[0] * dimensions[1], num_columns))
-        column_index = 0
-        for raster_stack in raster_stack_list:
-            for raster_path in raster_stack:
-                raster = gdal.Open(raster_path)
-                band = raster.GetRasterBand(1)
-                values = band.ReadAsArray().astype(float)
-                values[values == band.GetNoDataValue()] = np.nan
-                matrix[:, column_index] = values.ravel()
-                raster = None
-                column_index += 1
-        return matrix
-
-    @staticmethod
-    def convert_raster_stack_list_into_matrix_coords(raster_stack_list: list[list[str]]) -> np.ndarray:
-        raster = gdal.Open(raster_stack_list[0][0])
-        geotransform = raster.GetGeoTransform()
-        band = raster.GetRasterBand(1)
-        cols = raster.RasterXSize
-        rows = raster.RasterYSize
-        matrix = np.zeros((cols * rows, 2))
-        for y in range(rows):
-            for x in range(cols):
-                pixel_value = band.ReadAsArray(x, y, 1, 1)[0][0]
-                lon = geotransform[0] + x * geotransform[1] + y * geotransform[2]
-                lat = geotransform[3] + x * geotransform[4] + y * geotransform[5]
-                matrix[y * cols + x] = [lon, lat]
-        return matrix
-
-    @staticmethod
-    def convert_raster_stack_list_into_matrix_list(raster_stack_list: list[list[str]]) -> list[np.ndarray]:
-        matrix_list = []
-        for raster_stack in raster_stack_list:
-            matrix_list.append(Utils.convert_raster_stack_list_into_matrix([raster_stack]))
-        return matrix_list
-
-    @staticmethod
-    def convert_raster_stack_list_into_matrix_list_coords(raster_stack_list: list[list[str]]) -> list[np.ndarray]:
-        matrix_list = []
-        for raster_stack in raster_stack_list:
-            matrix_list.append(Utils.convert_raster_stack_list_into_matrix_coords([raster_stack]))
-        return matrix_list
 
     @staticmethod
     def compute_rotation_coefficient(rotation_mode: bool, analysis_period: list[int], reference_vector: np.ndarray,
@@ -143,36 +55,6 @@ class Utils:
         return normalization_coefficient / (normalization_coefficient + distances)
 
     @staticmethod
-    def create_tiff_file_from_array(vector: np.ndarray, directory: str, tif_name: str,
-                                    reference_tif_file_path: str) -> str:
-        gtiff_driver = gdal.GetDriverByName('GTiff')
-        raster = gdal.Open(reference_tif_file_path)
-        band = raster.GetRasterBand(1)
-        file_path = os.path.join(directory, tif_name)
-        out_ds = gtiff_driver.Create(file_path, band.XSize, band.YSize, 1, 6)
-        out_ds.SetProjection(raster.GetProjection())
-        out_ds.SetGeoTransform(raster.GetGeoTransform())
-        out_band = out_ds.GetRasterBand(1)
-        out_band.WriteArray(vector.reshape(band.YSize, band.XSize))
-        out_ds.FlushCache()
-        out_band.ComputeStatistics(True)
-        del out_ds
-        raster = None
-        return file_path
-
-    @staticmethod
-    def plot_raster_file(file_path: str, longitude: float, latitude: float):
-        ds = gdal.Open(file_path)
-        data = ds.GetRasterBand(1).ReadAsArray()
-        cmap = plt.cm.get_cmap('RdYlGn')
-        plt.imshow(data, cmap=cmap)
-        plt.colorbar()
-        x, y = map(int, gdal.ApplyGeoTransform(gdal.InvGeoTransform(ds.GetGeoTransform()), longitude, latitude))
-        plt.scatter(x, y, s=50, c='#00faf6', marker='X')
-        plt.show()
-        ds = None
-
-    @staticmethod
     def convert_time_series_dataset_into_matrix_list(target_data: list[str],
                                                      headers_indices: list[list[int]]) -> list[np.ndarray]:
         matrix_list = [Utils.csv_into_matrix(file_path, headers_indices[i]) for i, file_path in enumerate(target_data)]
@@ -185,3 +67,23 @@ class Utils:
             next(reader)
             matrix = [[row[i] for i in headers_indices] for row in reader]
         return np.array(matrix, dtype=np.float64)
+
+    @staticmethod
+    def convert_time_series_dataset_into_matrix(target_data: list[str], headers_indices: list[list[int]]) -> np.ndarray:
+        matrix = None
+        for i, csv_file in enumerate(target_data):
+            values = Utils.csv_into_matrix(csv_file, headers_indices[i])
+            if matrix is None:
+                matrix = values
+            else:
+                matrix = np.column_stack((matrix, values))
+        return matrix
+
+    @staticmethod
+    def create_csv_file_from_matrix(matrix: np.ndarray, directory: str, csv_name: str, headers: list[str]) -> str:
+        file_path = os.path.join(directory, csv_name)
+        with open(file_path, 'w', newline='') as csvfile:
+            csvfile.write(','.join(headers) + '\n')
+            np.savetxt(csvfile, matrix, delimiter=',', fmt='%.2f')
+        return file_path
+
