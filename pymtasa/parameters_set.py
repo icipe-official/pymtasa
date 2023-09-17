@@ -52,7 +52,7 @@ class ParametersSet:
         self.write_file = write_file
 
 
-class Site:
+class QuerySequence:
     def __init__(self, measurement_vars: tuple, query_sequence_file_path: str):
         """
             data (dictionary) : measurements variables corresponding to (x,y).

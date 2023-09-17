@@ -1,8 +1,7 @@
-import time
 import multiprocessing as mp
 import gc
 
-from pymtasa.parameters_set import Site, ParametersSet
+from pymtasa.parameters_set import QuerySequence, ParametersSet
 from pymtasa.utils import Utils
 from pymtasa.static_variables import RESULTS_DIRECTORY, NORMALIZATION_COEFFICIENTS
 import warnings
@@ -12,20 +11,19 @@ import numpy as np
 class Similarity:
     """
         parameters_set (ParametersSet) : set of parameters used to compute the agro ecology similarity
-        reference (Site) : site that will be used as reference to evaluate the agro ecology similarity
-        threshold (float) : value between 0-1. Only sites with a climatic similarity above this threshold will be
-                saved and displayed.
+        reference (QuerySequence) : query sequence that will be used to evaluate the similarity
+        threshold (float) : value between 0-1. Only instances with a  similarity above this threshold will be saved.
         absolute_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value, False
             for relative value.
 
-        Note :  We assume that the position of the variables in env_vars follows the same order as the position of the
-                variables in number_divisions & data_target
+        Note :  We assume that the position of the variables in measurement_vars follows the same order as the position
+                of the variables in number_divisions & data_target
     """
 
     def __init__(self, parameters_set: ParametersSet):
         self.parameters_set = parameters_set
         self.formatting_analysis_period()
-        self.reference = Site(self.parameters_set.measurement_vars, self.parameters_set.ref_data)
+        self.reference = QuerySequence(self.parameters_set.measurement_vars, self.parameters_set.ref_data)
         self.threshold = parameters_set.threshold
         self.rotation_mode = parameters_set.rotation_mode
         self.threshold_mode = parameters_set.threshold_mode
@@ -55,7 +53,7 @@ class Similarity:
 
         self.parameters_set.analysis_period = Utils.remove_duplicates(tmp_result)
 
-    def compute_similarity_matrix(self, start_time) -> str:
+    def compute_similarity_matrix(self) -> str:
         if self.parameters_set.rotation_variables is None or len(self.parameters_set.rotation_variables) == 0:
             target_data_matrices = Utils.convert_time_series_dataset_into_matrix_list(
                 self.parameters_set.target_dataset, self.parameters_set.headers_indices)
@@ -64,15 +62,14 @@ class Similarity:
             rotation_array, target_data_matrices = self.mp_rotate_climate_data()
 
         print("Step 1 Over !!!!")
-        print("Process Time Rotation computation : ----%.2f----" % (time.time() - start_time))
         similarity_data = self.compute_similarity_data(target_data_matrices)
         del target_data_matrices
         gc.collect()
         print("Step 2 Over !!!!")
-        print("Process Time Similarity computation : ----%.2f----" % (time.time() - start_time))
         ids_array = Utils.csv_into_matrix(self.parameters_set.target_dataset[0], [0])
         similarity_index_matrix = np.column_stack((ids_array, rotation_array, similarity_data))
         similarity_index_matrix = similarity_index_matrix[(-similarity_index_matrix[:, 2]).argsort()]
+        print("Step 3 Over !!!!")
         if self.parameters_set.write_file:
             headers = ['ID', 'Rotation coefficient', 'Similarity index']
             return Utils.create_csv_file_from_matrix(similarity_index_matrix, RESULTS_DIRECTORY,
