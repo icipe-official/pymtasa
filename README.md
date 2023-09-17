@@ -62,7 +62,13 @@ if __name__ == '__main__':
 ```
 
 ## Results
-The package will compute a similarity index matrix based on the provided parameters. The results can be saved to the specified directory.
+The package will compute a similarity index matrix (see an example below) based on the provided parameters. The results can be saved to the specified directory.
+
+| ID      | Rotation coefficient | Similarity index |
+| ----------- | ----------- | ----------- |
+| 1      | 5       | 0.96      |
+| 2   | 7        | 0.75        |
+... | ... | ... |
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
