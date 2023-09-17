@@ -6,10 +6,10 @@ PYMTASA is a Python package designed for Multivariate Time series Alignment and 
 
 ## Installation
 
-To install PYMTASA and its dependencies, you can use the following `requirements.txt`:
+You can install the dependencies using pip:
 
 ```plaintext
-numpy==1.26.0
+pip install -r requirements.txt
 ```
 
 ## Input data
