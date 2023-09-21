@@ -14,12 +14,12 @@ pip install -r requirements.txt
 
 ## Input data
 
-- `measurement_vars` (tuple): Names of the measurements variables to use, e.g. ("prec","tmean").
+- `measurement_vars` (tuple): Names of the measurement variables to use, e.g. ("prec","tmean").
 - `weights` (tuple): Weights for each variable in the range 0-1. The sum of the weights must equal 1, e.g., (0.5, 0.5).
 - `number_divisions` (tuple): Number of divisions for each variable, e.g., (12, 12).
 - `ref_data` (string): File path of the query sequence data.
 - `target_dataset` (tuple): File paths for the time series dataset.
-- `headers_indices` (list): List of headers indices corresponding to the measurements values within the time series files.
+- `headers_indices` (list): List of headers indices corresponding to the measurement values within the time series files.
 - `analysis_period` (list): Period of interest in the analysis.
 - `rotation_variables` (list): List of rotation variables used for comparing instances with temporal shifts.
 - `rotation_mode` (bool): Specify if the rotation is absolute or relative.
