@@ -7,33 +7,33 @@ class ParametersSet:
                  rotation_variables: list[str], rotation_mode: bool, threshold: float, threshold_mode: bool,
                  outfile: str, file_name: str, write_file: bool):
         """
-            measurement_vars (tuple) : a tuple with the name of the measurements variable(s) to use,
+            measurement_vars (tuple): a tuple with the name of the measurement variable(s) to use,
                 e.g. ("prec","tmean") \n
-            weights (tuple) : tuple of length equal to the number of variables. Each value in the vector gives the
+            weights (tuple): tuple of length equal to the number of variables. Each value in the vector gives the
                 weight given to each variable in the range 0-1. The sum of the weights must equal 1. E.g: (0.5, 0.5) \n
-            number_divisions (tuple) : the number of divisions for each variable. E.g: (12,12) \n
-            ref_data (string) : File path of the file containing the data for the query sequence \n
-            target_dataset (tuple) : a tuple of length equal to the number of variables that specifies the time
+            number_divisions (tuple): the number of divisions for each variable. E.g: (12,12) \n
+            ref_data (string): File path of the file containing the data for the query sequence \n
+            target_dataset (tuple): a tuple of length equal to the number of variables that specifies the time
                 series dataset \n
-            headers_indices (list): list of headers indices corresponding to the measurements values within the files
+            headers_indices (list): list of headers indices corresponding to the measurement values within the files
                 representing the time series dataset. E.g: [2, 3, 4] \n
-            analysis_period (list) : period of interest in the analysis. E.g: [1,12] \n
-            rotation_variables (list) : list of rotation variables that will be used to compare instances with temporal
+            analysis_period (list): period of interest in the analysis. E.g: [1,12] \n
+            rotation_variables (list): list of rotation variables that will be used to compare instances with temporal
                 shift. E.g: ["prec"] \n
-            rotation_mode (bool) : specify if the rotation will be absolute (i.e. the analysis period is used as basis)
+            rotation_mode (bool): specify if the rotation will be absolute (i.e. the analysis period is used as basis)
                 or relative (i.e. the whole measurement period will be used as a basis). True for absolute mode, False
                 for relative mode \n
-            threshold (float) : value between 0-1. Only instances with a  similarity above this threshold will be saved
+            threshold (float): value between 0-1. Only instances with a  similarity above this threshold will be saved
                 and displayed. \n
-            threshold_mode (bool) : specify if the threshold is an absolute or relative value. True for absolute value,
+            threshold_mode (bool): specify if the threshold is an absolute or relative value. True for absolute value,
                 False for relative values \n
-            outfile (string) : directory where the resultant similarity matrix will be saved \n
-            file_name (string) :  name of output file \n
-            write_file (boolean) : if the output file is to be written on disk. Otherwise, only an object will be
+            outfile (string): directory where the resultant similarity matrix will be saved \n
+            file_name (string):  name of output file \n
+            write_file (boolean): if the output file is to be written on disk. Otherwise, only an object will be
                 returned. \n
 
-            Note :  The position of the variables in vars must follow the same order as the position of the variables in
-                number_divisions, env_data_ref & env_data_target
+            Note:  The position of the variables in vars must follow the same order as the position of the variables in
+                number_divisions, ref_data & target_dataset
         """
 
         self.measurement_vars = measurement_vars
@@ -55,7 +55,7 @@ class ParametersSet:
 class QuerySequence:
     def __init__(self, measurement_vars: tuple, query_sequence_file_path: str):
         """
-            data (dictionary) : measurements variables corresponding to (x,y).
+            data (dictionary): measurement variables corresponding to the query sequence.
                 E.g : { 'temp': [20, 22, 23], 'prec': [120, 152, 133] }
         """
 
